@@ -1,0 +1,451 @@
+# React2Shell IOC Configuration
+# CVE-2025-55182 (React Server Components) & CVE-2025-66478 (Next.js)
+# Last Updated: 2025-12-06
+# Sources: Datadog Security Labs, GreyNoise, AWS Threat Intelligence, Bitdefender
+
+metadata:
+  version: "1.0.0"
+  created: "2025-12-06"
+  author: "Security Operations"
+  description: "Indicators of Compromise for React2Shell vulnerability exploitation"
+  cve_ids:
+    - CVE-2025-55182
+    - CVE-2025-66478
+  cvss_score: 10.0
+  severity: CRITICAL
+
+# MITRE ATT&CK Mapping
+mitre_attack:
+  techniques:
+    - id: T1190
+      name: "Exploit Public-Facing Application"
+      tactic: "Initial Access"
+    - id: T1059.007
+      name: "Command and Scripting Interpreter: JavaScript"
+      tactic: "Execution"
+    - id: T1105
+      name: "Ingress Tool Transfer"
+      tactic: "Command and Control"
+    - id: T1552.001
+      name: "Unsecured Credentials: Credentials In Files"
+      tactic: "Credential Access"
+    - id: T1021
+      name: "Remote Services"
+      tactic: "Lateral Movement"
+    - id: T1496
+      name: "Resource Hijacking"
+      tactic: "Impact"
+
+# Network Indicators
+network_iocs:
+  # C2 Infrastructure IPs
+  malicious_ips:
+    - ip: "93.123.109.247"
+      port: 8000
+      context: "C2 server - weaponized payloads observed"
+      confidence: high
+      first_seen: "2025-12-03"
+      source: "Datadog Security Labs"
+
+    - ip: "45.77.33.136"
+      port: 8080
+      context: "C2 server - payload staging"
+      confidence: high
+      first_seen: "2025-12-03"
+      source: "Datadog Security Labs"
+
+    - ip: "194.246.84.13"
+      port: 2045
+      context: "C2 server - exploitation attempts"
+      confidence: high
+      first_seen: "2025-12-04"
+      source: "Datadog Security Labs"
+
+    - ip: "45.32.158.54"
+      port: null
+      context: "Scanner infrastructure"
+      confidence: medium
+      first_seen: "2025-12-04"
+      source: "GreyNoise"
+
+    - ip: "46.36.37.85"
+      port: 12000
+      context: "Payload staging server"
+      confidence: high
+      first_seen: "2025-12-04"
+      source: "GreyNoise"
+
+    - ip: "144.202.115.234"
+      port: 80
+      context: "Payload hosting"
+      confidence: medium
+      first_seen: "2025-12-04"
+      source: "Datadog Security Labs"
+
+    - ip: "141.11.240.103"
+      port: 45178
+      context: "C2 server - active exploitation"
+      confidence: high
+      first_seen: "2025-12-04"
+      source: "Datadog Security Labs"
+
+    - ip: "23.235.188.3"
+      port: 652
+      context: "PowerShell stager - IEX DownloadString observed"
+      confidence: high
+      first_seen: "2025-12-04"
+      source: "GreyNoise"
+
+    - ip: "162.215.170.26"
+      port: 3000
+      context: "Secondary payload server"
+      confidence: medium
+      first_seen: "2025-12-05"
+      source: "GreyNoise"
+
+  # Suspicious ports commonly used
+  suspicious_ports:
+    - 652    # PowerShell stager
+    - 2045   # C2 communication
+    - 8000   # Alternative HTTP
+    - 8080   # Alternative HTTP
+    - 12000  # Custom C2
+    - 45178  # Custom C2
+    # Cryptomining ports
+    - 3333   # Stratum mining
+    - 5555   # Mining pool
+    - 7777   # Mining pool
+    - 9999   # Mining pool
+    - 14433  # XMRig
+    - 14444  # XMRig
+
+  # Malicious domains
+  malicious_domains:
+    exfiltration_services:
+      - domain: "ceye.io"
+        context: "DNS exfiltration service"
+        confidence: high
+      - domain: "dnslog.cn"
+        context: "DNS exfiltration service"
+        confidence: high
+      - domain: "*.oastify.com"
+        context: "Burp Collaborator - reconnaissance"
+        confidence: medium
+
+    c2_domains:
+      - domain: "sapo.shk0x.net"
+        context: "C2 infrastructure"
+        confidence: high
+        source: "Datadog Security Labs"
+      - domain: "xwpoogfunv.zaza.eu.org"
+        context: "C2 infrastructure"
+        confidence: high
+        source: "Datadog Security Labs"
+      - domain: "*.a02.lol"
+        context: "C2 infrastructure"
+        confidence: medium
+        source: "Datadog Security Labs"
+
+    mining_pools:
+      - domain: "*.c3pool.com"
+        context: "Cryptocurrency mining pool"
+        confidence: high
+      - domain: "pool.supportxmr.com"
+        context: "XMR mining pool"
+        confidence: high
+
+# HTTP-Based Indicators
+http_iocs:
+  # Malicious headers
+  headers:
+    - name: "Next-Action"
+      pattern: ".*"
+      severity: critical
+      context: "React Server Components action header - exploitation attempt"
+
+    - name: "rsc-action-id"
+      pattern: ".*"
+      severity: critical
+      context: "RSC action identifier - exploitation attempt"
+
+  # Suspicious User-Agents
+  user_agents:
+    malicious:
+      - pattern: "Go-http-client/1.1"
+        context: "Common scanner user agent"
+        confidence: medium
+      - pattern: "Assetnote/1.0.0"
+        context: "Security scanner - may indicate reconnaissance"
+        confidence: low
+
+    suspicious:
+      - pattern: "aiohttp"
+        context: "Python async HTTP client - common in scanners"
+        confidence: low
+      - pattern: "python-requests"
+        context: "Python requests library - common in scanners"
+        confidence: low
+
+  # Payload patterns for WAF detection
+  payload_patterns:
+    critical:
+      - pattern: '\$ACTION_0:0'
+        description: "RSC action parameter exploitation"
+
+      - pattern: '\$ACTION_REF_0'
+        description: "RSC action reference exploitation"
+
+      - pattern: '__proto__:then'
+        description: "Prototype pollution via then property"
+
+      - pattern: '__proto__'
+        description: "Prototype pollution attempt"
+
+      - pattern: 'constructor\.prototype'
+        description: "Prototype chain manipulation"
+
+      - pattern: 'process\.mainModule\.require'
+        description: "Node.js module access for RCE"
+
+      - pattern: 'child_process'
+        description: "Node.js child process spawning"
+
+      - pattern: 'execSync'
+        description: "Synchronous command execution"
+
+      - pattern: 'spawnSync'
+        description: "Synchronous process spawning"
+
+    high:
+      - pattern: '"status"\s*:\s*"resolved_model"'
+        description: "Flight protocol resolved model indicator"
+
+      - pattern: '\$@'
+        description: "RSC serialization marker"
+
+      - pattern: '\[""\$1'
+        description: "RSC reference exploitation"
+
+  # JA4 fingerprints observed in attacks
+  ja4_fingerprints:
+    - fingerprint: "po11nn060000_3865ae1cc1d9"
+      context: "Scanner infrastructure"
+      confidence: medium
+    - fingerprint: "po10nn090000_75eeec6218a0"
+      context: "Automated exploitation"
+      confidence: medium
+    - fingerprint: "po11nn10enus_38148d6b7d75"
+      context: "Go-based scanner"
+      confidence: medium
+
+# Host-Based Indicators
+host_iocs:
+  # Process execution patterns
+  process_patterns:
+    windows:
+      - parent_process: "node.exe"
+        child_processes:
+          - "powershell.exe"
+          - "pwsh.exe"
+          - "cmd.exe"
+        severity: critical
+        context: "Node.js spawning shell - likely RCE"
+
+      - command_patterns:
+          - pattern: "-enc"
+            description: "Encoded PowerShell command"
+          - pattern: "-EncodedCommand"
+            description: "Encoded PowerShell command"
+          - pattern: "DownloadString"
+            description: "Remote file download"
+          - pattern: "IEX"
+            description: "Invoke-Expression - code execution"
+          - pattern: "Invoke-Expression"
+            description: "Code execution"
+          - pattern: "AmsiUtils"
+            description: "AMSI bypass attempt"
+          - pattern: "amsiInitFailed"
+            description: "AMSI bypass indicator"
+        severity: critical
+
+    linux:
+      - parent_process: "node"
+        child_processes:
+          - "sh"
+          - "bash"
+          - "dash"
+          - "ash"
+        severity: critical
+        context: "Node.js spawning shell - likely RCE"
+
+      - command_patterns:
+          - pattern: 'curl.*\|.*sh'
+            description: "Download and execute pattern"
+          - pattern: 'wget.*\|.*sh'
+            description: "Download and execute pattern"
+          - pattern: 'curl.*\|.*bash'
+            description: "Download and execute pattern"
+          - pattern: 'wget.*\|.*bash'
+            description: "Download and execute pattern"
+          - pattern: 'base64.*-d'
+            description: "Base64 decode - obfuscation"
+        severity: critical
+
+  # File system indicators
+  file_indicators:
+    suspicious_paths:
+      - path: "/tmp/*.sh"
+        context: "Shell script in temp directory"
+        severity: high
+
+      - path: "/tmp/xmrig*"
+        context: "XMRig cryptominer"
+        severity: critical
+
+      - path: "/tmp/config.json"
+        context: "Potential miner configuration"
+        severity: medium
+
+      - path: "/_bk"
+        context: "React2Shell webshell endpoint"
+        severity: critical
+
+    env_files:
+      - ".env"
+      - ".env.local"
+      - ".env.production"
+      - ".env.development"
+      context: "Environment file access - credential harvesting"
+      severity: high
+
+  # Environment variable patterns targeted
+  env_var_patterns:
+    - pattern: "*KEY*"
+    - pattern: "*SECRET*"
+    - pattern: "*TOKEN*"
+    - pattern: "*PASSWORD*"
+    - pattern: "*PASS*"
+    - pattern: "*DATABASE*"
+    - pattern: "*AWS_*"
+    - pattern: "*AZURE_*"
+    - pattern: "*GCP_*"
+
+# AWS-Specific Indicators
+aws_iocs:
+  # CloudTrail event patterns
+  cloudtrail_patterns:
+    credential_theft:
+      - eventName: "GetCallerIdentity"
+        context: "First recon call after credential theft"
+        severity: medium
+
+      - eventName: "DescribeInstanceAttribute"
+        requestParameter: "userData"
+        context: "EC2 user data harvesting"
+        severity: high
+
+    lateral_movement:
+      - eventName: "RunInstances"
+        context: "New instance creation from compromised host"
+        severity: high
+
+      - eventName: "SendCommand"
+        context: "SSM command execution"
+        severity: high
+
+      - eventName: "StartSession"
+        context: "SSM session initiation"
+        severity: medium
+
+    privilege_escalation:
+      - eventName: "CreateAccessKey"
+        context: "Persistence via new access key"
+        severity: critical
+
+      - eventName: "AttachUserPolicy"
+        context: "Privilege escalation attempt"
+        severity: critical
+
+      - eventName: "AttachRolePolicy"
+        context: "Privilege escalation attempt"
+        severity: critical
+
+      - eventName: "PutRolePolicy"
+        context: "Inline policy addition"
+        severity: critical
+
+    exfiltration:
+      - eventName: "GetSecretValue"
+        context: "Secrets Manager access"
+        severity: high
+
+      - eventName: "GetObject"
+        context: "S3 data access - check for bulk operations"
+        severity: medium
+
+  # GuardDuty finding types to prioritize
+  guardduty_findings:
+    critical:
+      - "UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.OutsideAWS"
+      - "UnauthorizedAccess:IAMUser/InstanceCredentialExfiltration.InsideAWS"
+      - "Trojan:EC2/DNSDataExfiltration"
+      - "CryptoCurrency:EC2/BitcoinTool.B!DNS"
+
+    high:
+      - "Behavior:EC2/NetworkPortUnusual"
+      - "Behavior:EC2/TrafficVolumeUnusual"
+      - "UnauthorizedAccess:EC2/TorClient"
+      - "Impact:EC2/MaliciousDomainRequest.Reputation"
+
+# Threat Actor Attribution
+threat_actors:
+  - name: "Earth Lamia"
+    attribution: "China-nexus"
+    first_observed: "2025-12-03"
+    source: "AWS Threat Intelligence"
+
+  - name: "Jackpot Panda"
+    attribution: "China-nexus"
+    first_observed: "2025-12-03"
+    source: "AWS Threat Intelligence"
+
+  - name: "Unknown RaaS Operators"
+    attribution: "Ransomware-as-a-Service"
+    first_observed: "2025-12-05"
+    source: "Bitdefender"
+
+# Affected Software Versions
+affected_versions:
+  react:
+    vulnerable:
+      - "19.0.0"
+      - "19.1.0"
+      - "19.1.1"
+      - "19.2.0"
+    patched:
+      - "19.0.1"
+      - "19.1.2"
+      - "19.2.1"
+    packages:
+      - "react-server-dom-webpack"
+      - "react-server-dom-parcel"
+      - "react-server-dom-turbopack"
+
+  nextjs:
+    vulnerable:
+      - "15.0.4"
+      - "15.1.8"
+      - "15.2.5"
+      - "15.3.5"
+      - "15.4.7"
+      - "15.5.6"
+      - "16.0.6"
+      - "14.3.0-canary.77+"
+    patched:
+      - "15.0.5"
+      - "15.1.9"
+      - "15.2.6"
+      - "15.3.6"
+      - "15.4.8"
+      - "15.5.7"
+      - "16.0.7"

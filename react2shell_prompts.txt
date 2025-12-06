@@ -1,0 +1,39 @@
+We have indicators of compromise of React2Shell CVE-2025-55182 & CVE-2025-66478 in our 
+environment. I need you to first, conduct deep research on those CVE, including indicators of compromise. In addition to the initial CVE pages, you will start with analyzing 
+https://detecteam.com/blog/4731/ and continue to conduct deep research from there including analyzing the MITRE ATT&CK Techniques Modeled that the article mentions. We run in 
+an AWS environment, so the goal is to design a script that can detect indicators of compromise across the AWS organization and also create GuardDuty-specific detection rules. 
+I need you to brainstorm and design this 
+
+I'm working on a script (well, Claude Code is) that starts with the information from the Detecteam blog and the CVE pages along with the the MITRE ATT&CK Techniques modeled to detect indicators of compromise organization-wide and also creates GuardDuty/EventBridge filters to trigger on the IOCs.
+
+
+/sc:design I found new information. You don't create new detection rules within GuardDuty itself; instead, you enable GuardDuty, then use Amazon EventBridge (CloudWatch Events) to filter its generated findings (threat alerts) and route them to targets like SNS (notifications), Lambda (automation), or SIEMs, often defining your "rules" by customizing the EventBridge pattern to match specific GuardDuty finding types (like UnauthorizedAccess or Reconnaissance>>`). You also manage settings like enabling/disabling data sources (S3, EKS, etc.) or creating Trusted IP lists directly in the GuardDuty console. 
+Core Steps to Leverage GuardDuty for Custom Detections
+Enable GuardDuty:
+Go to the Amazon GuardDuty console.
+Click Enable GuardDuty (or "Get Started") to activate it in your region and account.
+Enable necessary data sources (S3, EC2, EKS, Runtime Monitoring) under Settings/Protection Plans.
+Create an EventBridge Rule (Your "Detection Logic"):
+Navigate to Amazon EventBridge or CloudWatch.
+Create a new rule, selecting "Event pattern".
+Service: AWS Services -> GuardDuty.
+Event Type: GuardDuty Finding.
+Edit the Event Pattern: This is where you define your rule by adding criteria like detail-type, severity, findingType, or specific resource details to filter for threats you care about (e.g., only High severity findings, or specific malware types).
+Define Targets:
+In the EventBridge rule, add targets like an Amazon SNS Topic for email/SMS alerts, a Lambda function for automated remediation, or a Kinesis Data Stream for SIEM ingestion.
+Configure GuardDuty Settings (Optional Tuning):
+Trusted IP List: Add trusted IPs in GuardDuty Settings to suppress related findings (e.g., your own VPN).
+Suppression Rules: Create rules in the Findings page to hide known, benign findings. 
+Example EventBridge Pattern (Simplified)
+json
+{
+  "source": ["aws.guardduty"],
+  "detail-type": ["GuardDuty Finding"],
+  "detail": {
+    "severity": ["High", "Medium"],
+    "findingType": ["UnauthorizedAccess:EC2/MaliciousIPCaller.Custom"]
+  }
+}
+This pattern triggers for any High/Medium severity finding related to malicious IPs. This pattern is an example I found online for you to model after. It may or may not be applicable to our use case.
+
+If the original script did not follow the above steps, adjust/fix to do so. If you cannot do this programatically, create a .md file with step-by-step instructions to accomplish this manually with all of the IOCs. --ultrathink
