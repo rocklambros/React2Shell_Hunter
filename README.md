@@ -2,6 +2,41 @@
 
 **AWS Organization-Wide Detection Toolkit for CVE-2025-55182 & CVE-2025-66478**
 
+---
+
+> ## ⚠️ IMPORTANT DISCLAIMER - PLEASE READ BEFORE USE
+>
+> **This toolkit has NOT been tested in a production AWS environment.**
+>
+> Due to infrastructure constraints, this project was developed and validated through code review, static analysis, and documentation verification only. It has **not** been deployed to or tested against a live AWS environment with active GuardDuty, WAF, EventBridge, or CloudTrail services.
+>
+> ### What This Means For You:
+>
+> | Component | Status |
+> |-----------|--------|
+> | Python Scanner Logic | ✅ Code reviewed, Snyk validated |
+> | Terraform Syntax | ✅ Validated, not applied |
+> | IAM Policies | ⚠️ May require adjustment for your environment |
+> | EventBridge Rules | ⚠️ Finding patterns based on AWS documentation |
+> | WAF Rules | ⚠️ Regex patterns untested against live traffic |
+> | Athena Queries | ⚠️ Schema assumptions may need modification |
+>
+> ### Recommendations:
+>
+> 1. **Deploy to a non-production account first** - Test all components in a sandbox environment
+> 2. **Review IAM policies carefully** - Adjust permissions to match your organization's requirements
+> 3. **Validate Terraform plans** - Run `terraform plan` and review before applying
+> 4. **Test EventBridge patterns** - Verify finding type strings match your GuardDuty output
+> 5. **Monitor CloudWatch logs** - Check for errors after deployment
+>
+> ### Liability:
+>
+> This software is provided "AS IS" without warranty of any kind. The authors assume no responsibility for any damage, security incidents, or AWS costs incurred through the use of this toolkit. **Use at your own risk.**
+>
+> If you successfully deploy and test this toolkit, please consider contributing your findings back to improve it for the community.
+
+---
+
 A comprehensive security toolkit for detecting React2Shell exploitation attempts across AWS environments. This toolkit provides real-time detection, threat hunting capabilities, and automated response for the critical React Server Components RCE vulnerability.
 
 ---
