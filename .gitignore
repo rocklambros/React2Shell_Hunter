@@ -1,5 +1,8 @@
 # React2Shell Hunter - Git Ignore
 
+# Project-specific
+react2shell_prompts.txt
+
 # Python
 __pycache__/
 *.py[cod]
