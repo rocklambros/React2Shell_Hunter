@@ -293,14 +293,16 @@ The WAF WebACL implements 9 rules in priority order:
 | Priority | Rule | Action | What It Detects |
 |----------|------|--------|-----------------|
 | 1 | Block Malicious IPs | BLOCK | Connections from 9 known C2 IPs |
-| 2 | Next-Action Header | BLOCK | Presence of `Next-Action` header |
-| 3 | RSC-Action-ID Header | BLOCK | Presence of `rsc-action-id` header |
+| 2 | Next-Action Header Values | BLOCK | `next-action` header containing `$ACTION` OR `__proto__` patterns |
+| 3 | RSC-Action-ID Header Values | BLOCK | `rsc-action-id` header containing `$ACTION` OR `__proto__` patterns |
 | 4 | Prototype Pollution | BLOCK | `__proto__` or `constructor.prototype` in body |
 | 5 | RCE Patterns | BLOCK | `process.mainModule.require`, `child_process`, `execSync` |
 | 6 | ACTION Parameter | BLOCK | `$ACTION_0:0` or `$ACTION_REF` in POST body |
 | 7 | Suspicious User-Agents | COUNT | `Go-http-client`, `Assetnote`, `python-requests` |
 | 8 | AWS Known Bad Inputs | INHERIT | AWS managed rule group |
 | 9 | AWS Common Rule Set | INHERIT | AWS managed rule group |
+
+> **Note**: Rules 2 & 3 use `or_statement` with multiple `byte_match_statement` checks to detect malicious header VALUES (not just header presence). AWS WAF does not support regex in header matching, so each pattern requires a separate statement. Header names are lowercase as required by WAF.
 
 ---
 
@@ -311,22 +313,28 @@ The WAF WebACL implements 9 rules in priority order:
 ```
 React2Shell_Hunter/
 ├── config/
-│   └── iocs.yaml                    # IOC database (IPs, domains, patterns)
+│   └── iocs.yaml                    # IOC database (IPs, domains, patterns) - 452 lines
 ├── src/
-│   └── react2shell_detector.py      # Main detection script (1136 lines)
+│   └── react2shell_detector.py      # Main detection script - 1141 lines
 ├── terraform/
-│   ├── guardduty.tf                 # GuardDuty + ThreatIntelSet + S3
-│   ├── eventbridge_rules.tf         # 7 EventBridge rules
-│   └── waf_rules.tf                 # WAF WebACL with 9 rules
+│   ├── guardduty.tf                 # GuardDuty + ThreatIntelSet + S3 - 405 lines
+│   ├── eventbridge_rules.tf         # 7 EventBridge rules - 533 lines
+│   └── waf_rules.tf                 # WAF WebACL with 9 rules - 681 lines
 ├── lambda/
 │   └── ioc_scanner/
-│       └── handler.py               # Real-time Lambda scanner
+│       └── handler.py               # Real-time Lambda scanner - 381 lines
 ├── athena_queries/
-│   └── detection_queries.sql        # 18 threat hunting queries
+│   └── detection_queries.sql        # 18 threat hunting queries - 483 lines
+├── tests/
+│   ├── __init__.py                  # Test package init
+│   ├── conftest.py                  # Pytest fixtures (project_root, ioc_config, etc.)
+│   ├── test_ioc_matching.py         # IOC pattern validation tests
+│   ├── test_terraform.py            # Terraform configuration validation
+│   └── test_waf_patterns.py         # WAF regex pattern tests
 ├── docs/
 │   ├── THREAT_INTELLIGENCE_REPORT.md
 │   └── GUARDDUTY_EVENTBRIDGE_SETUP_GUIDE.md
-├── requirements.txt
+├── requirements.txt                 # Python dependencies (boto3, pyyaml, pytest, python-hcl2)
 ├── README.md
 └── CLAUDE.md
 ```
@@ -487,8 +495,8 @@ aws athena start-query-execution \
 
 | Pattern | Severity | Description |
 |---------|----------|-------------|
-| `Next-Action: *` | CRITICAL | RSC exploitation header |
-| `rsc-action-id: *` | CRITICAL | RSC action identifier |
+| `next-action: *` | CRITICAL | RSC exploitation header (lowercase in WAF) |
+| `rsc-action-id: *` | CRITICAL | RSC action identifier (lowercase in WAF) |
 | `$ACTION_0:0` | CRITICAL | RSC action parameter |
 | `__proto__:then` | CRITICAL | Prototype pollution |
 | `process.mainModule.require` | CRITICAL | Node.js RCE |

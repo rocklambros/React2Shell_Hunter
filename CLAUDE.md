@@ -97,13 +97,23 @@ WHERE sourceipaddress IN ('93.123.109.247', '45.77.33.136', ...)
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `src/react2shell_detector.py` | 1136 | Main Python scanner - CloudTrail, VPC, WAF, GuardDuty analysis |
+| `src/react2shell_detector.py` | 1141 | Main Python scanner - CloudTrail, VPC, WAF, GuardDuty analysis |
 | `config/iocs.yaml` | 452 | IOC database - IPs, domains, HTTP patterns, MITRE mappings |
 | `terraform/guardduty.tf` | 405 | GuardDuty detector + ThreatIntelSet + S3 bucket + SNS |
 | `terraform/eventbridge_rules.tf` | 533 | 7 EventBridge rules for specific finding types |
-| `terraform/waf_rules.tf` | 644 | WAF WebACL with 9 detection rules |
+| `terraform/waf_rules.tf` | 681 | WAF WebACL with 9 detection rules (fixed header pattern matching) |
 | `lambda/ioc_scanner/handler.py` | 381 | Real-time Lambda for CloudTrail event processing |
 | `athena_queries/detection_queries.sql` | 483 | 18 SQL queries for threat hunting |
+
+### Test Files
+
+| File | Purpose |
+|------|---------|
+| `tests/__init__.py` | Test package initialization |
+| `tests/conftest.py` | Pytest fixtures: `project_root`, `terraform_dir`, `config_dir`, `ioc_config` |
+| `tests/test_terraform.py` | Validates WAF rules have non-empty search_string, required variables defined |
+| `tests/test_ioc_matching.py` | Validates IOC patterns: IP format, known C2s present, header names lowercase |
+| `tests/test_waf_patterns.py` | Validates WAF regex patterns compile correctly, match known exploits |
 
 ### Documentation
 
@@ -209,8 +219,8 @@ main()
 2. **Regex Pattern Set** - RCE patterns (`child_process`, `execSync`, etc.)
 3. **WebACL** with 9 rules in priority order:
    - Priority 1: Block malicious IPs
-   - Priority 2: Block `Next-Action` header
-   - Priority 3: Block `rsc-action-id` header
+   - Priority 2: Block `next-action` header containing `$ACTION` OR `__proto__` (uses `or_statement`)
+   - Priority 3: Block `rsc-action-id` header containing `$ACTION` OR `__proto__` (uses `or_statement`)
    - Priority 4: Block prototype pollution (`__proto__`)
    - Priority 5: Block RCE patterns (regex)
    - Priority 6: Block `$ACTION_0:0` parameters
@@ -219,6 +229,8 @@ main()
    - Priority 9: AWS Managed Common Rule Set
 4. **CloudWatch Dashboard** - WAF metrics visualization
 5. **CloudWatch Alarm** - High block rate alert
+
+**Important WAF Note**: AWS WAF does not support empty `search_string=""` in `byte_match_statement`. Rules 2 & 3 use `or_statement` with multiple byte_match checks to detect malicious patterns (`$ACTION`, `__proto__`) in header VALUES. Header names MUST be lowercase.
 
 ---
 
@@ -255,9 +267,9 @@ network_iocs:
 
 http_iocs:
   headers:
-    - name: "Next-Action"
+    - name: "next-action"      # MUST be lowercase for WAF matching
       severity: critical
-    - name: "rsc-action-id"
+    - name: "rsc-action-id"    # MUST be lowercase for WAF matching
       severity: critical
 
   payload_patterns:
@@ -391,6 +403,35 @@ The IOCs (IPs, domains, patterns) are **indicators of known malicious infrastruc
 - GreyNoise
 - AWS Threat Intelligence
 - Bitdefender
+
+---
+
+## Running Tests
+
+```bash
+# Install test dependencies (included in requirements.txt)
+pip install pytest python-hcl2
+
+# Run all tests
+pytest tests/ -v
+
+# Run specific test categories
+pytest tests/test_terraform.py -v      # Terraform validation
+pytest tests/test_ioc_matching.py -v   # IOC pattern tests
+pytest tests/test_waf_patterns.py -v   # WAF regex tests
+
+# Run with coverage (requires pytest-cov)
+pip install pytest-cov
+pytest tests/ --cov=src --cov-report=html
+```
+
+### Test Categories
+
+| Test File | Tests | What It Validates |
+|-----------|-------|-------------------|
+| `test_terraform.py` | 3 | WAF file exists, no empty `search_string`, required variables defined |
+| `test_ioc_matching.py` | 4 | IP format valid, known C2s present, header names lowercase, patterns compile |
+| `test_waf_patterns.py` | 2 | Regex patterns compile, ACTION patterns match exploits |
 
 ---
 
