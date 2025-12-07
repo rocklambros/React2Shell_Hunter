@@ -140,17 +140,36 @@ resource "aws_wafv2_web_acl" "react2shell_protection" {
     }
 
     statement {
-      byte_match_statement {
-        field_to_match {
-          single_header {
-            name = "next-action"
+      or_statement {
+        statement {
+          byte_match_statement {
+            field_to_match {
+              single_header {
+                name = "next-action"
+              }
+            }
+            positional_constraint = "CONTAINS"
+            search_string         = "$ACTION"
+            text_transformation {
+              priority = 0
+              type     = "URL_DECODE"
+            }
           }
         }
-        positional_constraint = "CONTAINS"
-        search_string         = ""
-        text_transformation {
-          priority = 0
-          type     = "NONE"
+        statement {
+          byte_match_statement {
+            field_to_match {
+              single_header {
+                name = "next-action"
+              }
+            }
+            positional_constraint = "CONTAINS"
+            search_string         = "__proto__"
+            text_transformation {
+              priority = 0
+              type     = "URL_DECODE"
+            }
+          }
         }
       }
     }
@@ -172,17 +191,36 @@ resource "aws_wafv2_web_acl" "react2shell_protection" {
     }
 
     statement {
-      byte_match_statement {
-        field_to_match {
-          single_header {
-            name = "rsc-action-id"
+      or_statement {
+        statement {
+          byte_match_statement {
+            field_to_match {
+              single_header {
+                name = "rsc-action-id"
+              }
+            }
+            positional_constraint = "CONTAINS"
+            search_string         = "$ACTION"
+            text_transformation {
+              priority = 0
+              type     = "URL_DECODE"
+            }
           }
         }
-        positional_constraint = "CONTAINS"
-        search_string         = ""
-        text_transformation {
-          priority = 0
-          type     = "NONE"
+        statement {
+          byte_match_statement {
+            field_to_match {
+              single_header {
+                name = "rsc-action-id"
+              }
+            }
+            positional_constraint = "CONTAINS"
+            search_string         = "__proto__"
+            text_transformation {
+              priority = 0
+              type     = "URL_DECODE"
+            }
+          }
         }
       }
     }

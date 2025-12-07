@@ -158,7 +158,7 @@ network_iocs:
 http_iocs:
   # Malicious headers
   headers:
-    - name: "Next-Action"
+    - name: "next-action"
       pattern: ".*"
       severity: critical
       context: "React Server Components action header - exploitation attempt"
@@ -311,10 +311,11 @@ host_iocs:
         severity: critical
 
     env_files:
-      - ".env"
-      - ".env.local"
-      - ".env.production"
-      - ".env.development"
+      paths:
+        - ".env"
+        - ".env.local"
+        - ".env.production"
+        - ".env.development"
       context: "Environment file access - credential harvesting"
       severity: high
 

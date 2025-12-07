@@ -625,6 +625,26 @@ python src/react2shell_detector.py --guardduty-bucket your-bucket
 
 ---
 
+## Running Tests
+
+```bash
+# Install test dependencies
+pip install -r requirements.txt
+
+# Run all tests
+pytest tests/ -v
+
+# Run specific test categories
+pytest tests/test_terraform.py -v      # Terraform validation
+pytest tests/test_ioc_matching.py -v   # IOC pattern tests
+pytest tests/test_waf_patterns.py -v   # WAF regex tests
+
+# Run with coverage
+pytest tests/ --cov=src --cov-report=html
+```
+
+---
+
 ## References
 
 - [CVE-2025-55182 - NVD](https://nvd.nist.gov/vuln/detail/CVE-2025-55182)
